@@ -13,6 +13,14 @@ A comprehensive project management REST API built with Node.js, Express, and Pos
 - 🔍 **Search & Filtering** - Advanced search and filtering capabilities
 - 📊 **Statistics & Analytics** - Project and task progress tracking
 
+## Screenshots
+
+### Login Page
+![Login Page](screenshots/login.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
 ## Tech Stack
 
 - **Backend**: Node.js, Express.js
