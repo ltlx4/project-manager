@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; }
+        .output { background: #f5f5f5; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug Tool</h1>
+    
+    <div class="section">
+        <h2>Current Token Status</h2>
+        <button onclick="checkToken()">Check Token</button>
+        <button onclick="clearToken()">Clear Token</button>
+        <div id="token-status" class="output"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Test Login</h2>
+        <button onclick="testLogin()">Login as Admin</button>
+        <div id="login-result" class="output"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Test /me Endpoint</h2>
+        <button onclick="testMe()">Test /me</button>
+        <div id="me-result" class="output"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Navigation</h2>
+        <button onclick="goToLogin()">Go to Login</button>
+        <button onclick="goToDashboard()">Go to Dashboard</button>
+    </div>
+
+    <script>
+        function checkToken() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            document.getElementById('token-status').textContent = 
+                `Token: ${token ? token.substring(0, 50) + '...' : 'None'}\n` +
+                `User: ${user || 'None'}`;
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            document.getElementById('token-status').textContent = 'Token cleared';
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    document.getElementById('login-result').textContent = 
+                        `Success!\nToken: ${data.token.substring(0, 50)}...\nUser: ${data.user.email}`;
+                } else {
+                    document.getElementById('login-result').textContent = 
+                        `Failed: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                document.getElementById('login-result').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testMe() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                document.getElementById('me-result').textContent = 'No token found';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('me-result').textContent = 
+                    `Status: ${response.status}\n` +
+                    `Response: ${JSON.stringify(data, null, 2)}`;
+                    
+            } catch (error) {
+                document.getElementById('me-result').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+        
+        function goToDashboard() {
+            window.location.href = '/';
+        }
+        
+        // Auto-check token on load
+        window.onload = checkToken;
+    </script>
+</body>
+</html>

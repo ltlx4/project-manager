@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Project Manager</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6366F1',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <!-- Logo -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-project-diagram text-white text-sm"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold text-gray-900">Project Manager</span>
+                    </div>
+
+                    <!-- Navigation Links -->
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="/" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="/projects" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <i class="fas fa-folder mr-2"></i>Projects
+                        </a>
+                        <a href="/tasks" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <i class="fas fa-tasks mr-2"></i>Tasks
+                        </a>
+                        <a href="/team" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <i class="fas fa-users mr-2"></i>Team
+                        </a>
+                        <a href="/analytics" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            <i class="fas fa-chart-bar mr-2"></i>Analytics
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Menu -->
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    <div class="ml-3 relative" x-data="{ open: false }">
+                        <div>
+                            <button @click="open = !open" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" id="user-menu-button">
+                                <span class="sr-only">Open user menu</span>
+                                <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                                    <span class="text-white text-sm font-medium" id="user-initials">AU</span>
+                                </div>
+                                <span class="ml-2 text-gray-700 text-sm font-medium" id="user-name">Admin User</span>
+                                <i class="fas fa-chevron-down ml-2 text-gray-400 text-xs"></i>
+                            </button>
+                        </div>
+
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                            <div class="py-1">
+                                <a href="/profile" class="text-gray-700 hover:bg-gray-100 block px-4 py-2 text-sm">
+                                    <i class="fas fa-user mr-2"></i>Profile
+                                </a>
+                                <a href="/settings" class="bg-gray-100 text-gray-900 block px-4 py-2 text-sm">
+                                    <i class="fas fa-cog mr-2"></i>Settings
+                                </a>
+                                <button onclick="logout()" class="text-gray-700 hover:bg-gray-100 block w-full text-left px-4 py-2 text-sm">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Sign out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    <i class="fas fa-cog mr-3 text-primary"></i>Settings
+                </h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Manage your application preferences and configurations
+                </p>
+            </div>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="space-y-6">
+            <!-- Notifications Settings -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Notification Preferences</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Choose how you want to be notified about project updates.</p>
+                </div>
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Email Notifications</h4>
+                                <p class="text-sm text-gray-500">Receive email updates about project activities</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="email-notifications" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Task Assignments</h4>
+                                <p class="text-sm text-gray-500">Get notified when tasks are assigned to you</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="task-notifications" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Project Updates</h4>
+                                <p class="text-sm text-gray-500">Receive notifications about project status changes</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="project-notifications" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Settings -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Display Settings</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Customize how the application looks and feels.</p>
+                </div>
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="theme" class="block text-sm font-medium text-gray-700">Theme</label>
+                            <select id="theme" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="auto">Auto (System)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="language" class="block text-sm font-medium text-gray-700">Language</label>
+                            <select id="language" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="timezone" class="block text-sm font-medium text-gray-700">Timezone</label>
+                            <select id="timezone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time</option>
+                                <option value="America/Chicago">Central Time</option>
+                                <option value="America/Denver">Mountain Time</option>
+                                <option value="America/Los_Angeles">Pacific Time</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy Settings -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Privacy & Security</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Control your privacy and security settings.</p>
+                </div>
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Profile Visibility</h4>
+                                <p class="text-sm text-gray-500">Allow other team members to see your profile</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="profile-visibility" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Activity Status</h4>
+                                <p class="text-sm text-gray-500">Show when you're online and active</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="activity-status" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Settings -->
+            <div class="flex justify-end">
+                <button onclick="saveSettings()" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Alpine.js -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Authentication and settings loading
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load user info
+            loadUserInfo();
+            // Load settings
+            loadSettings();
+        });
+
+        function loadUserInfo() {
+            const token = localStorage.getItem('token');
+            
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    const user = data.user;
+                    document.getElementById('user-name').textContent = user.firstName + ' ' + user.lastName;
+                    document.getElementById('user-initials').textContent = (user.firstName[0] + user.lastName[0]).toUpperCase();
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            });
+        }
+
+        function loadSettings() {
+            // Load settings from localStorage or set defaults
+            const settings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+            
+            // Set form values
+            document.getElementById('email-notifications').checked = settings.emailNotifications !== false;
+            document.getElementById('task-notifications').checked = settings.taskNotifications !== false;
+            document.getElementById('project-notifications').checked = settings.projectNotifications !== false;
+            document.getElementById('profile-visibility').checked = settings.profileVisibility !== false;
+            document.getElementById('activity-status').checked = settings.activityStatus !== false;
+            
+            document.getElementById('theme').value = settings.theme || 'light';
+            document.getElementById('language').value = settings.language || 'en';
+            document.getElementById('timezone').value = settings.timezone || 'UTC';
+        }
+
+        function saveSettings() {
+            const settings = {
+                emailNotifications: document.getElementById('email-notifications').checked,
+                taskNotifications: document.getElementById('task-notifications').checked,
+                projectNotifications: document.getElementById('project-notifications').checked,
+                profileVisibility: document.getElementById('profile-visibility').checked,
+                activityStatus: document.getElementById('activity-status').checked,
+                theme: document.getElementById('theme').value,
+                language: document.getElementById('language').value,
+                timezone: document.getElementById('timezone').value
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('userSettings', JSON.stringify(settings));
+            
+            // Show success message
+            alert('Settings saved successfully!');
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('userSettings');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

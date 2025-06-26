@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks - Project Manager</title>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6366F1',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444',
+                        dark: '#1F2937',
+                        light: '#F9FAFB'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-project-diagram text-primary mr-2"></i>
+                            Project Manager
+                        </h1>
+                    </div>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="/" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="/projects" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-folder mr-2"></i>Projects
+                        </a>
+                        <a href="/tasks" class="border-primary text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tasks mr-2"></i>Tasks
+                        </a>
+                        <a href="/team" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-users mr-2"></i>Team
+                        </a>
+                        <a href="/analytics" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-chart-bar mr-2"></i>Analytics
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button 
+                            hx-get="/api/notifications/unread-count" 
+                            hx-trigger="load, every 30s"
+                            hx-target="#notification-count"
+                            class="p-2 text-gray-400 hover:text-gray-500 relative">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=3B82F6&color=fff" alt="User avatar">
+                            <span class="ml-2 text-gray-700 font-medium" id="user-name">Loading...</span>
+                            <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+                        </button>
+                        
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <div class="py-1">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user mr-2"></i>Profile
+                                </a>
+                                <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i>Settings
+                                </a>
+                                <button 
+                                    @click="open = false; logout()"
+                                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Sign out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    <i class="fas fa-tasks mr-3 text-primary"></i>Tasks
+                </h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Manage and track your tasks across all projects
+                </p>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+                <button
+                    id="new-task-btn"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-plus mr-2"></i>
+                    New Task
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div class="flex-1 max-w-lg">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="search-tasks"
+                                name="search"
+                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary"
+                                placeholder="Search tasks..."
+                                hx-get="/api/tasks"
+                                hx-trigger="keyup changed delay:300ms"
+                                hx-target="#tasks-list"
+                                hx-include="[name='status'], [name='priority'], [name='projectId']">
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <select 
+                            name="projectId"
+                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary rounded-md"
+                            hx-get="/api/tasks"
+                            hx-trigger="change"
+                            hx-target="#tasks-list"
+                            hx-include="[name='search'], [name='status'], [name='priority']">
+                            <option value="">All Projects</option>
+                            <!-- Projects will be loaded dynamically -->
+                        </select>
+                        <select 
+                            name="status"
+                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary rounded-md"
+                            hx-get="/api/tasks"
+                            hx-trigger="change"
+                            hx-target="#tasks-list"
+                            hx-include="[name='search'], [name='priority'], [name='projectId']">
+                            <option value="">All Status</option>
+                            <option value="todo">To Do</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="review">Review</option>
+                            <option value="done">Done</option>
+                        </select>
+                        <select 
+                            name="priority"
+                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary rounded-md"
+                            hx-get="/api/tasks"
+                            hx-trigger="change"
+                            hx-target="#tasks-list"
+                            hx-include="[name='search'], [name='status'], [name='projectId']">
+                            <option value="">All Priority</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Board View -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- To Do Column -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 flex items-center">
+                        <span class="w-3 h-3 bg-gray-400 rounded-full mr-2"></span>
+                        To Do
+                    </h3>
+                </div>
+                <div id="todo-tasks" class="p-4 space-y-3 min-h-32">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- In Progress Column -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 flex items-center">
+                        <span class="w-3 h-3 bg-blue-400 rounded-full mr-2"></span>
+                        In Progress
+                    </h3>
+                </div>
+                <div id="inprogress-tasks" class="p-4 space-y-3 min-h-32">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Review Column -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 flex items-center">
+                        <span class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></span>
+                        Review
+                    </h3>
+                </div>
+                <div id="review-tasks" class="p-4 space-y-3 min-h-32">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Done Column -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 flex items-center">
+                        <span class="w-3 h-3 bg-green-400 rounded-full mr-2"></span>
+                        Done
+                    </h3>
+                </div>
+                <div id="done-tasks" class="p-4 space-y-3 min-h-32">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks List View -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">All Tasks</h3>
+            </div>
+            <div 
+                id="tasks-list"
+                hx-get="/api/tasks"
+                hx-trigger="load"
+                class="divide-y divide-gray-200">
+                <!-- Loading state -->
+                <div class="p-6">
+                    <div class="animate-pulse space-y-4">
+                        <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                        <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                        <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Task Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modal-title">Create New Task</h3>
+                    <button id="close-task-modal-btn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="task-form" hx-post="/api/tasks" hx-target="#tasks-list" hx-swap="outerHTML">
+                    <input type="hidden" id="task-id" name="id">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label for="title" class="block text-sm font-medium text-gray-700">Task Title</label>
+                            <input type="text" id="title" name="title" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="description" name="description" rows="3"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="projectId" class="block text-sm font-medium text-gray-700">Project</label>
+                            <select id="projectId" name="projectId" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="">Select Project</option>
+                                <!-- Projects will be loaded dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="assigneeId" class="block text-sm font-medium text-gray-700">Assignee</label>
+                            <select id="assigneeId" name="assigneeId"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="">Unassigned</option>
+                                <!-- Users will be loaded dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="task-status" class="block text-sm font-medium text-gray-700">Status</label>
+                            <select id="task-status" name="status"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="todo">To Do</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="task-priority" class="block text-sm font-medium text-gray-700">Priority</label>
+                            <select id="task-priority" name="priority"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="dueDate" class="block text-sm font-medium text-gray-700">Due Date</label>
+                            <input type="date" id="dueDate" name="dueDate"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                        </div>
+                        
+                        <div>
+                            <label for="estimatedHours" class="block text-sm font-medium text-gray-700">Estimated Hours</label>
+                            <input type="number" id="estimatedHours" name="estimatedHours" min="0" step="0.5"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" id="cancel-task-btn"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            <span id="submit-text">Create Task</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alpine.js -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Authentication and HTMX setup
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load user info
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.firstName + ' ' + data.user.lastName;
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            });
+            
+            // Load projects and users for dropdowns
+            loadProjects();
+            loadUsers();
+            loadTaskBoard();
+
+            // Add event listeners for modal buttons
+            const newTaskBtn = document.getElementById('new-task-btn');
+            const closeBtn = document.getElementById('close-task-modal-btn');
+            const cancelBtn = document.getElementById('cancel-task-btn');
+
+            if (newTaskBtn) {
+                newTaskBtn.addEventListener('click', openCreateModal);
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
+        });
+
+        // Add Authorization header to HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                event.detail.headers['Authorization'] = 'Bearer ' + token;
+            }
+        });
+
+        // Load projects for dropdowns
+        function loadProjects() {
+            const token = localStorage.getItem('token');
+            fetch('/api/projects', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const projectSelects = document.querySelectorAll('select[name="projectId"]');
+                projectSelects.forEach(select => {
+                    select.innerHTML = '<option value="">Select Project</option>';
+                    if (data.projects) {
+                        data.projects.forEach(project => {
+                            select.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+                        });
+                    }
+                });
+            });
+        }
+
+        // Load users for assignee dropdown
+        function loadUsers() {
+            const token = localStorage.getItem('token');
+            fetch('/api/users', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const assigneeSelect = document.getElementById('assigneeId');
+                assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
+                if (data.users) {
+                    data.users.forEach(user => {
+                        assigneeSelect.innerHTML += `<option value="${user.id}">${user.firstName} ${user.lastName}</option>`;
+                    });
+                }
+            });
+        }
+
+        // Load task board
+        function loadTaskBoard() {
+            const token = localStorage.getItem('token');
+            fetch('/api/tasks', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.tasks) {
+                    updateTaskBoard(data.tasks);
+                }
+            });
+        }
+
+        // Update task board with tasks
+        function updateTaskBoard(tasks) {
+            const columns = {
+                'todo': document.getElementById('todo-tasks'),
+                'in-progress': document.getElementById('inprogress-tasks'),
+                'review': document.getElementById('review-tasks'),
+                'done': document.getElementById('done-tasks')
+            };
+
+            // Clear columns
+            Object.values(columns).forEach(column => {
+                column.innerHTML = '';
+            });
+
+            // Add tasks to columns
+            tasks.forEach(task => {
+                const taskCard = createTaskCard(task);
+                if (columns[task.status]) {
+                    columns[task.status].appendChild(taskCard);
+                }
+            });
+        }
+
+        // Create task card element
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'bg-gray-50 p-3 rounded border cursor-pointer hover:shadow-md transition-shadow';
+            card.addEventListener('click', () => openEditModal(task));
+            
+            const priorityColors = {
+                'low': 'bg-gray-100 text-gray-800',
+                'medium': 'bg-blue-100 text-blue-800',
+                'high': 'bg-yellow-100 text-yellow-800',
+                'urgent': 'bg-red-100 text-red-800'
+            };
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="text-sm font-medium text-gray-900 truncate">${task.title}</h4>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority] || 'bg-gray-100 text-gray-800'}">
+                        ${task.priority}
+                    </span>
+                </div>
+                ${task.description ? `<p class="text-xs text-gray-600 mb-2 line-clamp-2">${task.description}</p>` : ''}
+                <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>${task.Project ? task.Project.name : 'No Project'}</span>
+                    ${task.dueDate ? `<span>${new Date(task.dueDate).toLocaleDateString()}</span>` : ''}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Modal functions
+        function openCreateModal() {
+            console.log('Opening create task modal...');
+            const modal = document.getElementById('task-modal');
+            const title = document.getElementById('modal-title');
+            const submitText = document.getElementById('submit-text');
+            const form = document.getElementById('task-form');
+            const taskId = document.getElementById('task-id');
+
+            if (modal && title && submitText && form) {
+                title.textContent = 'Create New Task';
+                submitText.textContent = 'Create Task';
+                form.setAttribute('hx-post', '/api/tasks');
+                form.removeAttribute('hx-put');
+                form.reset();
+                if (taskId) taskId.value = '';
+                modal.classList.remove('hidden');
+                console.log('Task modal opened successfully');
+            } else {
+                console.error('Task modal elements not found:', {
+                    modal: !!modal,
+                    title: !!title,
+                    submitText: !!submitText,
+                    form: !!form
+                });
+            }
+        }
+
+        function openEditModal(task) {
+            document.getElementById('modal-title').textContent = 'Edit Task';
+            document.getElementById('submit-text').textContent = 'Update Task';
+            document.getElementById('task-form').setAttribute('hx-put', `/api/tasks/${task.id}`);
+            document.getElementById('task-form').removeAttribute('hx-post');
+            
+            // Fill form with task data
+            document.getElementById('task-id').value = task.id;
+            document.getElementById('title').value = task.title;
+            document.getElementById('description').value = task.description || '';
+            document.getElementById('projectId').value = task.projectId || '';
+            document.getElementById('assigneeId').value = task.assigneeId || '';
+            document.getElementById('task-status').value = task.status;
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('dueDate').value = task.dueDate ? task.dueDate.split('T')[0] : '';
+            document.getElementById('estimatedHours').value = task.estimatedHours || '';
+            
+            document.getElementById('task-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            console.log('Closing task modal...');
+            const modal = document.getElementById('task-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                console.log('Task modal closed successfully');
+            } else {
+                console.error('Task modal not found');
+            }
+        }
+
+        // Handle form submission success
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            if (event.detail.xhr.status === 200 || event.detail.xhr.status === 201) {
+                if (event.detail.elt.id === 'task-form') {
+                    closeModal();
+                    // Refresh the tasks
+                    loadTaskBoard();
+                    htmx.trigger('#tasks-list', 'refresh');
+                }
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

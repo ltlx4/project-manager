@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Details - Project Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-bold text-gray-900">Project Manager</h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="/" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-home mr-2"></i>Dashboard
+                        </a>
+                        <a href="/projects" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-folder mr-2"></i>Projects
+                        </a>
+                        <a href="/tasks" class="border-primary text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tasks mr-2"></i>Tasks
+                        </a>
+                        <a href="/team" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-users mr-2"></i>Team
+                        </a>
+                        <a href="/analytics" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-chart-bar mr-2"></i>Analytics
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button class="text-gray-400 hover:text-gray-500 relative">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span
+                                id="notification-badge"
+                                class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            </span>
+                        </button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=3B82F6&color=fff" alt="User">
+                            <span id="user-name" class="ml-2 text-gray-700 font-medium">Loading...</span>
+                            <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+                        </button>
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <div class="py-1">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Loading State -->
+        <div id="loading-state" class="space-y-6">
+            <div class="bg-white shadow rounded-lg p-6">
+                <div class="animate-pulse">
+                    <div class="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Content -->
+        <div id="task-content" class="hidden space-y-6">
+            <!-- Task Header -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <a href="/tasks" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <div>
+                                <h1 id="task-title" class="text-2xl font-bold text-gray-900">Loading...</h1>
+                                <p id="task-project" class="text-gray-600 mt-1">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span id="task-status" class="status-badge">Loading...</span>
+                            <span id="task-priority" class="status-badge">Loading...</span>
+                            <button class="btn btn-primary">
+                                <i class="fas fa-edit mr-2"></i>Edit Task
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Details Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Task Description and Comments -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Description -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Description</h3>
+                        </div>
+                        <div class="p-6">
+                            <div id="task-description" class="text-gray-700">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Comments</h3>
+                        </div>
+                        <div id="task-comments" class="divide-y divide-gray-200">
+                            <!-- Comments will be loaded here -->
+                        </div>
+                        
+                        <!-- Add Comment Form -->
+                        <div class="p-6 border-t border-gray-200">
+                            <form id="comment-form" class="space-y-4">
+                                <textarea 
+                                    name="content"
+                                    rows="3"
+                                    placeholder="Add a comment..."
+                                    class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
+                                    required></textarea>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-comment mr-2"></i>Add Comment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Info Sidebar -->
+                <div class="space-y-6">
+                    <!-- Task Details -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Task Details</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Assignee</label>
+                                <div id="task-assignee" class="mt-1">Not assigned</div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Due Date</label>
+                                <div id="task-due-date" class="mt-1 text-gray-900">Not set</div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Estimated Hours</label>
+                                <div id="task-estimated-hours" class="mt-1 text-gray-900">Not set</div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Actual Hours</label>
+                                <div id="task-actual-hours" class="mt-1 text-gray-900">0</div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Created By</label>
+                                <div id="task-created-by" class="mt-1">Loading...</div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Created</label>
+                                <div id="task-created-at" class="mt-1 text-gray-900">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Tags</h3>
+                        </div>
+                        <div class="p-6">
+                            <div id="task-tags" class="flex flex-wrap gap-2">
+                                <!-- Tags will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Quick Actions</h3>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <button class="w-full btn btn-secondary">
+                                <i class="fas fa-play mr-2"></i>Start Work
+                            </button>
+                            <button class="w-full btn btn-secondary">
+                                <i class="fas fa-check mr-2"></i>Mark Complete
+                            </button>
+                            <button class="w-full btn btn-secondary">
+                                <i class="fas fa-user mr-2"></i>Assign to Me
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/js/app.js"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script>
+        // Get task ID from URL
+        const taskId = window.location.pathname.split('/').pop();
+        
+        // Authentication and task loading
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load user info
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.firstName + ' ' + data.user.lastName;
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            });
+
+            // Load notification count
+            loadNotificationCount();
+
+            // Load task details
+            loadTaskDetails();
+        });
+        
+        function loadNotificationCount() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            fetch('/api/notifications/unread-count', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                if (data.count && data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notification count:', error);
+                document.getElementById('notification-badge').style.display = 'none';
+            });
+        }
+
+        function loadTaskDetails() {
+            const token = localStorage.getItem('token');
+            
+            fetch(`/api/tasks/${taskId}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Task not found');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const task = data.task;
+                
+                // Update task header
+                document.getElementById('task-title').textContent = task.title;
+                document.getElementById('task-project').textContent = task.project?.name || 'No project';
+                document.getElementById('task-status').textContent = task.status.replace('-', ' ').toUpperCase();
+                document.getElementById('task-status').className = `status-badge status-${task.status}`;
+                document.getElementById('task-priority').textContent = task.priority.toUpperCase();
+                document.getElementById('task-priority').className = `status-badge priority-${task.priority}`;
+                
+                // Update description
+                document.getElementById('task-description').textContent = task.description || 'No description provided';
+                
+                // Update task details
+                if (task.assignee) {
+                    document.getElementById('task-assignee').innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=${task.assignee.firstName}+${task.assignee.lastName}&background=3B82F6&color=fff" 
+                                 alt="${task.assignee.firstName} ${task.assignee.lastName}" 
+                                 class="h-6 w-6 rounded-full">
+                            <span>${task.assignee.firstName} ${task.assignee.lastName}</span>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('task-assignee').textContent = 'Not assigned';
+                }
+                
+                document.getElementById('task-due-date').textContent = 
+                    task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set';
+                document.getElementById('task-estimated-hours').textContent = 
+                    task.estimatedHours ? `${task.estimatedHours} hours` : 'Not set';
+                document.getElementById('task-actual-hours').textContent = `${task.actualHours || 0} hours`;
+                
+                if (task.createdBy) {
+                    document.getElementById('task-created-by').innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <img src="https://ui-avatars.com/api/?name=${task.createdBy.firstName}+${task.createdBy.lastName}&background=3B82F6&color=fff" 
+                                 alt="${task.createdBy.firstName} ${task.createdBy.lastName}" 
+                                 class="h-5 w-5 rounded-full">
+                            <span>${task.createdBy.firstName} ${task.createdBy.lastName}</span>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('task-created-by').textContent = 'Unknown';
+                }
+                
+                document.getElementById('task-created-at').textContent = 
+                    new Date(task.createdAt).toLocaleDateString();
+                
+                // Update tags
+                const tagsContainer = document.getElementById('task-tags');
+                if (task.tags && task.tags.length > 0) {
+                    tagsContainer.innerHTML = task.tags.map(tag => 
+                        `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${tag}</span>`
+                    ).join('');
+                } else {
+                    tagsContainer.innerHTML = '<span class="text-gray-500 text-sm">No tags</span>';
+                }
+                
+                // Load comments (placeholder for now)
+                loadTaskComments([]);
+                
+                // Show content, hide loading
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('task-content').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error loading task:', error);
+                alert('Error loading task details');
+                window.location.href = '/tasks';
+            });
+        }
+        
+        function loadTaskComments(comments) {
+            const container = document.getElementById('task-comments');
+            
+            if (comments.length === 0) {
+                container.innerHTML = `
+                    <div class="p-6 text-center">
+                        <i class="fas fa-comments text-gray-300 text-3xl mb-2"></i>
+                        <p class="text-gray-500">No comments yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = comments.map(comment => `
+                <div class="p-6">
+                    <div class="flex space-x-3">
+                        <img src="https://ui-avatars.com/api/?name=${comment.author.firstName}+${comment.author.lastName}&background=3B82F6&color=fff" 
+                             alt="${comment.author.firstName} ${comment.author.lastName}" 
+                             class="h-8 w-8 rounded-full">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-medium text-gray-900">${comment.author.firstName} ${comment.author.lastName}</span>
+                                <span class="text-sm text-gray-500">${new Date(comment.createdAt).toLocaleString()}</span>
+                            </div>
+                            <div class="mt-1 text-gray-700">${comment.content}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Handle comment form submission
+        document.getElementById('comment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // This will be implemented when we add comment functionality
+            alert('Comment functionality will be implemented');
+        });
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

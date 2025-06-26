@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Project Manager</title>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6366F1',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444',
+                        dark: '#1F2937',
+                        light: '#F9FAFB'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-project-diagram text-primary mr-2"></i>
+                            Project Manager
+                        </h1>
+                    </div>
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="/" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="/projects" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-folder mr-2"></i>Projects
+                        </a>
+                        <a href="/tasks" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tasks mr-2"></i>Tasks
+                        </a>
+                        <a href="/team" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-users mr-2"></i>Team
+                        </a>
+                        <a href="/analytics" class="border-primary text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-chart-bar mr-2"></i>Analytics
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button 
+                            hx-get="/api/notifications/unread-count" 
+                            hx-trigger="load, every 30s"
+                            hx-target="#notification-count"
+                            class="p-2 text-gray-400 hover:text-gray-500 relative">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                            <img class="h-8 w-8 rounded-full" src="https://ui-avatars.com/api/?name=User&background=3B82F6&color=fff" alt="User avatar">
+                            <span class="ml-2 text-gray-700 font-medium" id="user-name">Loading...</span>
+                            <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+                        </button>
+                        
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <div class="py-1">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user mr-2"></i>Profile
+                                </a>
+                                <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i>Settings
+                                </a>
+                                <button 
+                                    @click="open = false; logout()"
+                                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Sign out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    <i class="fas fa-chart-bar mr-3 text-primary"></i>Analytics
+                </h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Track project performance and team productivity
+                </p>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+                <select id="time-range" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary rounded-md">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="365">Last year</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-folder text-2xl text-blue-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Projects</dt>
+                                <dd class="text-lg font-medium text-gray-900" id="total-projects">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-tasks text-2xl text-green-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Completed Tasks</dt>
+                                <dd class="text-lg font-medium text-gray-900" id="completed-tasks">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-2xl text-yellow-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Avg. Completion Time</dt>
+                                <dd class="text-lg font-medium text-gray-900" id="avg-completion">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-percentage text-2xl text-purple-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Success Rate</dt>
+                                <dd class="text-lg font-medium text-gray-900" id="success-rate">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Project Status Chart -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Project Status Distribution</h3>
+                <div class="relative h-64">
+                    <canvas id="project-status-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Task Priority Chart -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Task Priority Breakdown</h3>
+                <div class="relative h-64">
+                    <canvas id="task-priority-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Productivity Trend -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Productivity Trend</h3>
+                <div class="relative h-64">
+                    <canvas id="productivity-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Team Performance -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Team Performance</h3>
+                <div class="relative h-64">
+                    <canvas id="team-performance-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Recent Activity</h3>
+            </div>
+            <div 
+                id="recent-activity"
+                hx-get="/api/analytics/activity"
+                hx-trigger="load"
+                class="divide-y divide-gray-200">
+                <!-- Loading state -->
+                <div class="p-6">
+                    <div class="animate-pulse space-y-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="rounded-full bg-gray-200 h-8 w-8"></div>
+                            <div class="space-y-2 flex-1">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="rounded-full bg-gray-200 h-8 w-8"></div>
+                            <div class="space-y-2 flex-1">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Alpine.js -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="/js/app.js"></script>
+    
+    <script>
+        let charts = {};
+
+        // Authentication and HTMX setup
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load user info
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    document.getElementById('user-name').textContent = data.user.firstName + ' ' + data.user.lastName;
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            });
+            
+            // Load analytics data
+            loadAnalytics();
+            
+            // Time range change handler
+            document.getElementById('time-range').addEventListener('change', loadAnalytics);
+        });
+
+        // Add Authorization header to HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                event.detail.headers['Authorization'] = 'Bearer ' + token;
+            }
+        });
+
+        // Load analytics data
+        function loadAnalytics() {
+            const token = localStorage.getItem('token');
+            const timeRange = document.getElementById('time-range').value;
+
+            // Load dashboard analytics with detailed flag
+            fetch(`/api/analytics/dashboard?days=${timeRange}&detailed=true`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateMetrics(data);
+                updateCharts(data);
+            })
+            .catch(error => {
+                console.error('Error loading analytics:', error);
+            });
+        }
+
+        // Update key metrics
+        function updateMetrics(data) {
+            document.getElementById('total-projects').textContent = data.totalProjects || 0;
+            document.getElementById('completed-tasks').textContent = data.completedTasks || 0;
+            document.getElementById('avg-completion').textContent = data.avgCompletionTime || '0 days';
+            document.getElementById('success-rate').textContent = (data.successRate || 0) + '%';
+        }
+
+        // Update charts
+        function updateCharts(data) {
+            // Project Status Chart
+            updateProjectStatusChart(data.projectStatus || {});
+            
+            // Task Priority Chart
+            updateTaskPriorityChart(data.taskPriority || {});
+            
+            // Productivity Chart
+            updateProductivityChart(data.productivity || []);
+            
+            // Team Performance Chart
+            updateTeamPerformanceChart(data.teamPerformance || []);
+        }
+
+        // Project Status Pie Chart
+        function updateProjectStatusChart(data) {
+            const ctx = document.getElementById('project-status-chart').getContext('2d');
+            
+            if (charts.projectStatus) {
+                charts.projectStatus.destroy();
+            }
+            
+            charts.projectStatus = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Planning', 'Active', 'On Hold', 'Completed', 'Cancelled'],
+                    datasets: [{
+                        data: [
+                            data.planning || 0,
+                            data.active || 0,
+                            data.onHold || 0,
+                            data.completed || 0,
+                            data.cancelled || 0
+                        ],
+                        backgroundColor: [
+                            '#6B7280',
+                            '#3B82F6',
+                            '#F59E0B',
+                            '#10B981',
+                            '#EF4444'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Task Priority Bar Chart
+        function updateTaskPriorityChart(data) {
+            const ctx = document.getElementById('task-priority-chart').getContext('2d');
+            
+            if (charts.taskPriority) {
+                charts.taskPriority.destroy();
+            }
+            
+            charts.taskPriority = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Urgent'],
+                    datasets: [{
+                        label: 'Tasks',
+                        data: [
+                            data.low || 0,
+                            data.medium || 0,
+                            data.high || 0,
+                            data.urgent || 0
+                        ],
+                        backgroundColor: [
+                            '#6B7280',
+                            '#3B82F6',
+                            '#F59E0B',
+                            '#EF4444'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Productivity Line Chart
+        function updateProductivityChart(data) {
+            const ctx = document.getElementById('productivity-chart').getContext('2d');
+            
+            if (charts.productivity) {
+                charts.productivity.destroy();
+            }
+            
+            charts.productivity = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(item => item.date) || [],
+                    datasets: [{
+                        label: 'Tasks Completed',
+                        data: data.map(item => item.completed) || [],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Team Performance Chart
+        function updateTeamPerformanceChart(data) {
+            const ctx = document.getElementById('team-performance-chart').getContext('2d');
+            
+            if (charts.teamPerformance) {
+                charts.teamPerformance.destroy();
+            }
+            
+            charts.teamPerformance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(item => item.name) || [],
+                    datasets: [{
+                        label: 'Tasks Completed',
+                        data: data.map(item => item.completed) || [],
+                        backgroundColor: '#10B981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>
